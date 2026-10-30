@@ -21,7 +21,7 @@ import java.util.Locale;
 final class Cfg {
     /** رابط مشروع «رسائل الأولياء» المنشور على Google Apps Script */
     static final String SERVER = "https://script.google.com/macros/s/AKfycbxe0mtu9Ix6v_oVhWT0skpWbkLlX_Ji3DS9XM_LxQFSAsjsLLHXAjM7VUhOY_hY-jBX-g/exec";
-    static final String VERSION = "2.1";
+    static final String VERSION = "2.2";
 
     static SharedPreferences p(Context c) { return c.getSharedPreferences("sms", Context.MODE_PRIVATE); }
 

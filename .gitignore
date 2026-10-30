@@ -2,3 +2,4 @@ android/build/
 *.keystore
 *.jks
 android/app/src/main/assets/www/index.html
+web/out/
