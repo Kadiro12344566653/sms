@@ -17,7 +17,9 @@ var CFG = {
   CORRECTION_MINUTES: 10,      // مهلة تصحيح الغياب في daftar بعد نهاية الحصة: الرسالة تُرسل بعدها
   GAP_SEC: 90,                 // ثوان بين رسالة وأخرى
   SCAN_EVERY_SEC: 60,          // البحث عن غيابات جديدة مرة كل دقيقة على الأكثر
-  TOKEN_DAYS: 7,
+  TOKEN_DAYS: 7,               // جلسة الصفحة على الحاسوب
+  DEVICE_TOKEN_DAYS: 365,      // جلسة تطبيق الهاتف (يبقى يرسل دون إعادة الدخول؛ تغيير كلمة المرور يُخرجه)
+  MAX_PER_DAY: 400,            // حماية: لا يُرسل أكثر من هذا العدد في اليوم
   MAX_ATTEMPTS: 3
 };
 
@@ -316,10 +318,11 @@ function stillAbsent_(r) {
 /*  تطبيق «مرسل رسائل الغيابات» على هاتف المؤسسة                       */
 /* ================================================================== */
 /** p = {key, device, done:{id, date, ok, error}} ← {msg:{id,date,phone,text}|null, wait} */
-function gateway_next(p) {
+function gateway_next(p, me) {
   var props = P_();
   var key = props.getProperty('KEY');
-  if (!key || String(p.key || '').toUpperCase().replace(/[^A-Z0-9]/g, '') !== key) fail_('رابط الربط غير صحيح: انسخه من جديد من صفحة رسائل الأولياء.');
+  // تطبيق «رسائل الأولياء» يدخل بحساب المدير (me)؛ رمز الربط مقبول فقط للنسخ القديمة من المرسل
+  if (!me && (!key || String(p.key || '').toUpperCase().replace(/[^A-Z0-9]/g, '') !== key)) fail_('رابط الربط غير صحيح: انسخه من جديد من صفحة رسائل الأولياء.');
   props.setProperty('SEEN', nowSql_());
   if (p.device) props.setProperty('DEVICE', String(p.device).substr(0, 60));
   var nowS = Date.now() / 1000, date = today_();
@@ -340,6 +343,8 @@ function gateway_next(p) {
   if (stale.length) { stale.forEach(function (x) { x.status = Number(x.attempts) >= CFG.MAX_ATTEMPTS ? 'failed' : 'pending'; x.error = 'انقطع الهاتف أثناء الإرسال'; }); smsUpdate_(stale); }
   var pending = rows.filter(function (x) { return x.status === 'pending'; }).sort(function (a, b) { return Number(a.id) - Number(b.id); });
   if (!pending.length) return { msg: null, wait: 30, enabled: true };
+  var done = rows.filter(function (x) { return x.status === 'sent' || x.status === 'sending'; }).length;
+  if (done >= CFG.MAX_PER_DAY) return { msg: null, wait: 600, enabled: true, pending: pending.length, capped: true };
   var left = Math.ceil(CFG.GAP_SEC - (nowS - Number(props.getProperty('LAST_SENT_AT') || 0)));
   if (left > 0) return { msg: null, wait: Math.min(left, CFG.GAP_SEC), enabled: true, pending: pending.length };
 
@@ -371,8 +376,9 @@ function login_(p) {
   var u = dAll_('users').filter(function (x) { return String(x.email).toLowerCase() === email && x.role === 'admin' && x.status === 'active'; })[0];
   if (!u || hashPassword_(pw, u.salt) !== u.password_hash) { cache.put(fk, String(fails + 1), 300); fail_('البريد أو كلمة المرور غير صحيحة (حساب المدير في دفتر الغيابات).'); }
   cache.remove(fk);
-  var payload = Utilities.base64EncodeWebSafe(JSON.stringify({ u: u.id, h: u.password_hash.substr(0, 12), e: Math.floor(Date.now() / 1000) + CFG.TOKEN_DAYS * 86400 })).replace(/=+$/, '');
-  return { token: payload + '.' + sign_(payload), name: u.full_name };
+  var days = p.device ? CFG.DEVICE_TOKEN_DAYS : CFG.TOKEN_DAYS;
+  var payload = Utilities.base64EncodeWebSafe(JSON.stringify({ u: u.id, h: u.password_hash.substr(0, 12), e: Math.floor(Date.now() / 1000) + days * 86400 })).replace(/=+$/, '');
+  return { token: payload + '.' + sign_(payload), name: u.full_name, email: u.email };
 }
 
 function me_(token) {
@@ -400,7 +406,7 @@ function admin_status(p) {
   return {
     date: date, enabled: props.ON === '1', seen_ago: seen, seen: props.SEEN || '', device: props.DEVICE || '',
     daftar_ok: !!props.DAFTAR_ID, scan: scan, scan_err: props.SCAN_ERR || '',
-    stats: st, total: students.length, with_phone: withPhone,
+    stats: st, total: students.length, with_phone: withPhone, cap: CFG.MAX_PER_DAY, gap: CFG.GAP_SEC, late: CFG.CORRECTION_MINUTES,
     list: rows.slice().sort(function (a, b) { return Number(b.id) - Number(a.id); }).slice(0, 300).map(function (r) {
       return { id: r.id, kind: r.kind, name: r.name, label: r.class_label, phone: r.phone, status: r.status, text: r.text, error: r.error,
                time: (r.status === 'sent' ? r.sent_at : r.created_at).substr(11, 5) };
@@ -506,7 +512,8 @@ var ROUTES = {
   'saveSettings':  { fn: admin_saveSettings, admin: true, lock: true },
   'test':          { fn: admin_test, admin: true, lock: true },
   'action':        { fn: admin_action, admin: true, lock: true },
-  'next':          { fn: gateway_next, lock: true }
+  'next':          { fn: gateway_next, lock: true },     // النسخ القديمة من المرسل (رمز الربط)
+  'gnext':         { fn: gateway_next, admin: true, lock: true }   // التطبيق: هاتف المؤسسة بحساب المدير
 };
 
 /** كل الطلبات: من الصفحة (google.script.run.api) ومن تطبيق الهاتف (doPost) */
@@ -514,8 +521,9 @@ function api(action, token, payload) {
   try {
     var r = ROUTES[action];
     if (!r) fail_('إجراء غير معروف.');
-    if (r.admin && !me_(token)) return { ok: false, auth: true, error: 'انتهت الجلسة، ادخل من جديد.' };
-    var run = function () { return r.fn(payload || {}); };
+    var me = r.admin ? me_(token) : null;
+    if (r.admin && !me) return { ok: false, auth: true, error: 'انتهت الجلسة، ادخل من جديد.' };
+    var run = function () { return r.fn(payload || {}, me); };
     return { ok: true, data: r.lock ? withLock_(run) : run() };
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) };
@@ -531,12 +539,13 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 
-/** تطبيق الهاتف: POST نص JSON {action:'next', payload:{key, device, done}} */
+/** تطبيق الهاتف «رسائل الأولياء»: POST نص JSON {action, token, payload} — نفس واجهة الصفحة */
 function doPost(e) {
   var out;
   try {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    out = (req.action === 'next' || req.action === 'sms.next') ? api('next', null, req.payload || {}) : { ok: false, error: 'طلب غير صالح.' };
+    var action = req.action === 'sms.next' ? 'next' : String(req.action || '');
+    out = ROUTES[action] ? api(action, req.token || null, req.payload || {}) : { ok: false, error: 'طلب غير صالح.' };
   } catch (err) { out = { ok: false, error: 'طلب غير صالح.' }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }

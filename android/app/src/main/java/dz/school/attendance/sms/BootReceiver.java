@@ -4,11 +4,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-/** بعد إعادة تشغيل الهاتف أو تحديث التطبيق: يعود الإرسال تلقائيا إن كان مشغلا */
+/** بعد إعادة تشغيل الهاتف أو تحديث التطبيق: يعود الإرسال تلقائيا إن كان مشغلا والمدير مسجلا */
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent intent) {
-        if (Cfg.running(c) && !Cfg.key(c).isEmpty()) {
+        if (Cfg.running(c) && !Cfg.token(c).isEmpty()) {
             try { SmsService.start(c); } catch (Exception ignored) { }
         }
     }

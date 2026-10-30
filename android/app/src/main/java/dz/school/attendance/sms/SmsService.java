@@ -82,15 +82,23 @@ public class SmsService extends Service {
             long waitSec = 30;
             try {
                 JSONObject payload = new JSONObject();
-                payload.put("key", Cfg.key(this));
                 payload.put("device", deviceName());
                 if (done != null) payload.put("done", done);
                 JSONObject req = new JSONObject();
-                req.put("action", "sms.next");
+                req.put("action", "gnext");                       // بحساب المدير المسجل في التطبيق
+                req.put("token", Cfg.token(this));
                 req.put("payload", payload);
-                JSONObject res = post(Cfg.server(this), req.toString());
+                JSONObject res = post(Cfg.SERVER, req.toString());
                 done = null;
-                if (!res.optBoolean("ok", false)) {
+                if (res.optBoolean("auth", false)) {
+                    String err = "انتهت جلسة المدير: افتح التطبيق وادخل من جديد";
+                    Cfg.status(this, "⚠ " + err);
+                    Cfg.log(this, "⚠ " + err);
+                    Cfg.p(this).edit().putBoolean("running", false).apply();
+                    showNotif(err);
+                    stopSelf();
+                    break;
+                } else if (!res.optBoolean("ok", false)) {
                     String err = res.optString("error", "خطأ من الخادم");
                     Cfg.status(this, "⚠ " + err);
                     Cfg.log(this, "⚠ " + err);
@@ -103,8 +111,8 @@ public class SmsService extends Service {
                     waitSec = d.optLong("wait", 30);
                     JSONObject msg = d.optJSONObject("msg");
                     if (!d.optBoolean("enabled", true)) {
-                        Cfg.status(this, "متصل — الإرسال موقوف من صفحة المدير");
-                        showNotif("الإرسال موقوف من صفحة المدير");
+                        Cfg.status(this, "متصل — إرسال الرسائل موقوف (فعّله من تبويب «اليوم»)");
+                        showNotif("إرسال الرسائل موقوف");
                     } else if (msg != null) {
                         String phone = msg.optString("phone"), text = msg.optString("text");
                         Cfg.status(this, "يرسل إلى " + phone + "…");
@@ -119,7 +127,7 @@ public class SmsService extends Service {
                         waitSec = 0;   // نخبر الخادم بالنتيجة فورا، وهو يعيد مدة الانتظار
                     } else {
                         int left = d.optInt("pending", 0);
-                        Cfg.status(this, "متصل — " + (left > 0 ? left + " رسالة في الانتظار" : "لا توجد رسائل"));
+                        Cfg.status(this, d.optBoolean("capped", false) ? "بلغ الحد اليومي للرسائل" : "متصل — " + (left > 0 ? left + " رسالة في الانتظار" : "لا توجد رسائل جاهزة"));
                         showNotif("متصل · أُرسلت " + Cfg.sentToday(this) + " رسالة اليوم");
                     }
                     Cfg.p(this).edit().putLong("seen_at", System.currentTimeMillis()).apply();
@@ -191,7 +199,7 @@ public class SmsService extends Service {
     }
 
     private String deviceName() {
-        String sim = Cfg.p(this).getString("sim_name", "");
+        String sim = Cfg.simLabel(this);
         String m = Build.MODEL == null ? "" : Build.MODEL;
         String b = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER;
         if (!m.toLowerCase().startsWith(b.toLowerCase())) m = b + " " + m;
@@ -236,7 +244,7 @@ public class SmsService extends Service {
     private void showNotif(String text) {
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm != null && nm.getNotificationChannel(CHANNEL) == null) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "إرسال رسائل الغيابات", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel ch = new NotificationChannel(CHANNEL, "إرسال رسائل الأولياء", NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
             nm.createNotificationChannel(ch);
         }
@@ -245,7 +253,7 @@ public class SmsService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
         b.setSmallIcon(R.drawable.ic_stat_notify)
-                .setContentTitle("مرسل رسائل الغيابات يعمل")
+                .setContentTitle("رسائل الأولياء: هذا الهاتف يرسل")
                 .setContentText(text)
                 .setOngoing(true)
                 .setContentIntent(pi);
