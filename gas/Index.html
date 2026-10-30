@@ -222,6 +222,7 @@ function settingsView() {
   api('settings').then(function (d) {
     var demo = { 'التلميذ': 'بركات محمد', 'القسم': '1م1', 'التاريخ': '30/10', 'اليوم': 'الخميس', 'المادة': 'رياضيات', 'البداية': '08:00', 'النهاية': '09:00' };
     var h = '<div class="card"><h2>1. ربط هاتف المؤسسة</h2><p class="note">على هاتف المؤسسة (الذي فيه الشريحة): ثبّت تطبيق «مرسل رسائل الغيابات»، ثم افتح هذه الصفحة <b>من متصفح نفس الهاتف</b> واضغط «ربط هذا الهاتف». أو انسخ رابط الربط والصقه في التطبيق.</p>' +
+      (d.key ? '<p class="note" style="margin:0">رمز الربط (يُكتب في تطبيق المرسل):</p><div class="key ltr">' + esc(d.key.replace(/(.{5})/, '$1-')) + '</div>' : '') +
       (d.pair ? '<div class="row"><a class="btn ok" target="_top" href="intent://pair?l=' + encodeURIComponent(d.pair) + '#Intent;scheme=daftarsms;package=dz.school.attendance.sms;end">ربط هذا الهاتف</a>' +
         '<button class="btn soft" id="cp">نسخ رابط الربط</button></div><textarea id="pt" readonly rows="3" class="ltr" style="font-size:.75rem">' + esc(d.pair) + '</textarea>'
         : '<p class="note" style="color:var(--bad)">انشر التطبيق أولا (نشر ← نشر جديد ← تطبيق ويب) ثم أعد فتح الصفحة من رابط /exec.</p>') +

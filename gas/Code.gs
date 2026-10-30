@@ -524,7 +524,10 @@ function api(action, token, payload) {
 
 function doGet() {
   if (!P_().getProperty('SMS_DB_ID')) setup();
-  return HtmlService.createHtmlOutputFromFile('Index').setTitle(CFG.APP_NAME)
+  var page = null, names = ['Index', 'index', 'Index.html', 'index.html', 'INDEX'];
+  for (var i = 0; i < names.length && !page; i++) { try { page = HtmlService.createHtmlOutputFromFile(names[i]); } catch (e) {} }
+  if (!page) return HtmlService.createHtmlOutput('<p dir="rtl" style="font:18px Tahoma;padding:24px">لم أجد ملف الصفحة: في المحرر أضف ملف HTML اسمه <b>Index</b> والصق فيه Index.html، ثم انشر إصدارا جديدا.</p>');
+  return page.setTitle(CFG.APP_NAME)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 

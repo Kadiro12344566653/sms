@@ -10,14 +10,19 @@ import java.util.Locale;
 /** الإعدادات والحالة (تُقرأ من الواجهة ومن الخدمة) */
 final class Cfg {
     /** رابط مشروع «رسائل الأولياء» (من رابط الربط) — لا يوجد رابط مدمج */
-    static String server(Context c) { return p(c).getString("server", ""); }
+    /** رابط مشروع «رسائل الأولياء» المنشور (مدمج)؛ رابط الربط إن وُجد يأخذ مكانه */
+    static final String DEFAULT_SERVER = "https://script.google.com/macros/s/AKfycbxe0mtu9Ix6v_oVhWT0skpWbkLlX_Ji3DS9XM_LxQFSAsjsLLHXAjM7VUhOY_hY-jBX-g/exec";
+    static String server(Context c) { String s = p(c).getString("server", ""); return s.isEmpty() ? DEFAULT_SERVER : s; }
 
     /** رابط الربط: https://script.google.com/macros/s/.../exec#KEY  ← {server, key} أو null */
     static String[] parsePair(String s) {
         if (s == null) return null;
         s = s.trim();
         int h = s.lastIndexOf('#');
-        if (h < 0) return null;
+        if (h < 0) {                                            // رمز الربط وحده (10 أحرف) ← الرابط المدمج
+            String k = s.toUpperCase().replaceAll("[^A-Z0-9]", "");
+            return k.length() == 10 ? new String[]{DEFAULT_SERVER, k} : null;
+        }
         String url = s.substring(0, h).trim(), key = s.substring(h + 1).toUpperCase().replaceAll("[^A-Z0-9]", "");
         if (!url.startsWith("https://script.google.com/") || key.length() != 10) return null;
         return new String[]{url, key};

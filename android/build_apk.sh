@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 BT="${SDK_BT:?اضبط SDK_BT}"; JAR="${SDK_JAR:?اضبط SDK_JAR}"
 SRC=app/src/main; OUT=build
-PKG=dz.school.attendance.sms; VCODE=2; VNAME=1.1
+PKG=dz.school.attendance.sms; VCODE=3; VNAME=1.2
 rm -rf "$OUT"; mkdir -p "$OUT"/{gen,classes,dex}
 "$BT/aapt2" compile --dir "$SRC/res" -o "$OUT/res.zip"
 sed "s|<manifest |<manifest package=\"$PKG\" |" "$SRC/AndroidManifest.xml" > "$OUT/AndroidManifest.xml"

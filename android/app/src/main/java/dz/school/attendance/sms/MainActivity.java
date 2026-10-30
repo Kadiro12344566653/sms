@@ -90,16 +90,16 @@ public class MainActivity extends Activity {
         st.addView(sentTv);
 
         LinearLayout k = card(root);
-        k.addView(text("رابط الربط", 16, 0xFF12314F, true));
-        k.addView(text("افتح صفحة «رسائل الأولياء» من متصفح هذا الهاتف ← الإعدادات ← «ربط هذا الهاتف». أو انسخ «رابط الربط» من هناك والصقه هنا.", 13, MUTED, false));
+        k.addView(text("رمز الربط", 16, 0xFF12314F, true));
+        k.addView(text("اكتب الرمز (10 أحرف) الظاهر في صفحة «رسائل الأولياء» ← الإعدادات، أو اضغط هناك «ربط هذا الهاتف» من متصفح هذا الهاتف.", 13, MUTED, false));
         keyIn = new EditText(this);
         keyIn.setTextSize(13);
         keyIn.setTypeface(Typeface.MONOSPACE);
-        keyIn.setMinLines(3);
-        keyIn.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        keyIn.setHint("https://script.google.com/macros/s/…/exec#XXXXXXXXXX");
-        String srv = Cfg.server(this);
-        keyIn.setText(srv.isEmpty() ? "" : srv + "#" + Cfg.key(this));
+        keyIn.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        keyIn.setHint("XXXXX-XXXXX");
+        keyIn.setTextSize(22);
+        keyIn.setGravity(Gravity.CENTER);
+        keyIn.setText(Cfg.key(this));
         if (Build.VERSION.SDK_INT >= 17) keyIn.setTextDirection(View.TEXT_DIRECTION_LTR);
         k.addView(keyIn, new LinearLayout.LayoutParams(-1, -2));
 
@@ -161,7 +161,7 @@ public class MainActivity extends Activity {
             return;
         }
         String[] pair = Cfg.parsePair(keyIn.getText().toString());
-        if (pair == null) { toast("الصق «رابط الربط» كاملا كما يظهر في صفحة رسائل الأولياء (يبدأ بـ https://script.google.com وينتهي بـ #والرمز)."); return; }
+        if (pair == null) { toast("اكتب رمز الربط (10 أحرف) كما يظهر في صفحة رسائل الأولياء ← الإعدادات."); return; }
         String key = pair[1];
         Cfg.p(this).edit().putString("server", pair[0]).apply();
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {

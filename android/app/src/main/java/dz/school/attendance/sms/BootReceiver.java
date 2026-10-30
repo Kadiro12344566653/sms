@@ -8,7 +8,7 @@ import android.content.Intent;
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent intent) {
-        if (Cfg.running(c) && !Cfg.key(c).isEmpty() && !Cfg.server(c).isEmpty()) {
+        if (Cfg.running(c) && !Cfg.key(c).isEmpty()) {
             try { SmsService.start(c); } catch (Exception ignored) { }
         }
     }
