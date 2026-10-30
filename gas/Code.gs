@@ -107,6 +107,32 @@ function withLock_(fn) {
   try { return fn(); } finally { MEM.locked = false; SpreadsheetApp.flush(); lock.releaseLock(); }
 }
 
+/* ---------------- ذاكرة Google السريعة (CacheService) ---------------- */
+/* فتح ورقة Sheets يكلف ~0.3–1 ث؛ الذاكرة السريعة ~20 مللي ث. القيم مقسّمة (حد 100KB للقيمة). */
+var CH = 90000;
+function cPut_(key, obj, ttl) {
+  try {
+    var s = JSON.stringify(obj), parts = {}, n = Math.ceil(s.length / CH) || 1;
+    for (var i = 0; i < n; i++) parts[key + '~' + i] = s.substr(i * CH, CH);
+    parts[key + '~n'] = String(n);
+    CacheService.getScriptCache().putAll(parts, ttl || 300);
+  } catch (e) {}
+}
+function cGet_(key) {
+  try {
+    var c = CacheService.getScriptCache(), n = c.get(key + '~n');
+    if (!n) return null;
+    var ks = []; for (var i = 0; i < Number(n); i++) ks.push(key + '~' + i);
+    var m = c.getAll(ks), s = '';
+    for (var j = 0; j < ks.length; j++) { if (m[ks[j]] == null) return null; s += m[ks[j]]; }
+    return JSON.parse(s);
+  } catch (e) { return null; }
+}
+function cDel_(key) { try { CacheService.getScriptCache().remove(key + '~n'); } catch (e) {} }
+var DAFTAR_TABLES = ['users', 'students', 'classes', 'schedule', 'session_times', 'subjects'];
+/** «تحديث»: إعادة قراءة daftar الآن بدل انتظار 5 دقائق */
+function flushDaftar_() { DAFTAR_TABLES.forEach(function (t) { cDel_('d_' + t); delete MEM['d_' + t]; }); cDel_('abs_' + today_()); }
+
 /* ---------------- قراءة ملف daftar (قراءة فقط) ---------------- */
 function daftar_() {
   if (!MEM.daftar) {
@@ -121,10 +147,24 @@ function daftar_() {
 function dAll_(name) {
   var k = 'd_' + name;
   if (MEM[k]) return MEM[k];
-  var sh = daftar_().getSheetByName(name);
-  if (!sh || sh.getLastRow() < 2) return (MEM[k] = []);
-  var v = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getDisplayValues();
-  return (MEM[k] = rowsToObjs_(v[0], v.slice(1)));
+  var hit = cGet_(k);                                   // نسخة من آخر 5 دقائق (التلاميذ والأقسام والحصص قليلا ما تتغير)
+  if (hit) return (MEM[k] = hit);
+  var sh = daftar_().getSheetByName(name), rows = [];
+  if (sh && sh.getLastRow() >= 2) {
+    var v = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getDisplayValues();
+    rows = rowsToObjs_(v[0], v.slice(1));
+  }
+  cPut_(k, rows, name === 'users' ? 120 : 300);
+  return (MEM[k] = rows);
+}
+
+/** غيابات اليوم: نسخة من آخر 50 ثانية (fresh = قراءة الملف الآن، قبل إرسال رسالة) */
+function absToday_(date, fresh) {
+  var k = 'abs_' + date;
+  if (!fresh) { if (MEM[k]) return MEM[k]; var hit = cGet_(k); if (hit) return (MEM[k] = hit); }
+  var rows = dByDate_('absences', 'absence_date', date);
+  cPut_(k, rows, 50);
+  return (MEM[k] = rows);
 }
 
 /** صفوف تاريخ معين فقط (ورقة كبيرة مثل absences): نبحث عن أول وآخر سطر للتاريخ */
@@ -166,6 +206,8 @@ function ownSheet_(name) { return own_().getSheetByName(name) || ensureSheet_(ow
 
 function phones_() {
   if (MEM.phones) return MEM.phones;
+  var hit = cGet_('phones');
+  if (hit) return (MEM.phones = hit);
   var sh = ownSheet_('phones'), out = [];
   if (sh.getLastRow() > 1) {
     sh.getRange(2, 1, sh.getLastRow() - 1, PHONE_COLS.length).getDisplayValues().forEach(function (r, i) {
@@ -173,6 +215,7 @@ function phones_() {
       if (o.student_id || o.national_id) out.push(o);
     });
   }
+  cPut_('phones', out, 21600);
   return (MEM.phones = out);
 }
 
@@ -202,14 +245,20 @@ function savePhones_(items) {
     if (sh.getMaxRows() < start + add.length) sh.insertRowsAfter(sh.getMaxRows(), start + add.length - sh.getMaxRows() + 50);
     sh.getRange(start, 1, add.length, PHONE_COLS.length).setNumberFormat('@').setValues(add.map(function (r) { return PHONE_COLS.map(function (c) { return r[c]; }); }));
   }
-  delete MEM.phones;
+  delete MEM.phones; cDel_('phones');
   return { updated: changed.length, added: add.length };
 }
 
 /* سجل الرسائل */
+function smsVer_(bump) {
+  if (bump) { MEM.smsVer = String(Date.now()) + Math.floor(Math.random() * 1000); P_().setProperty('SMS_VER', MEM.smsVer); }
+  return MEM.smsVer || (MEM.smsVer = P_().getProperty('SMS_VER') || '0');
+}
 function smsRows_(date) {
   var k = 'sms_' + date;
   if (MEM[k]) return MEM[k];
+  var ck = 'sms_' + date + '_' + smsVer_(), hit = cGet_(ck);   // تتغير النسخة مع كل كتابة
+  if (hit) return (MEM[k] = hit);
   var sh = ownSheet_('sms'), out = [];
   if (sh.getLastRow() > 1) {
     var found = sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(date).matchEntireCell(true).findAll();
@@ -222,11 +271,13 @@ function smsRows_(date) {
       });
     }
   }
+  cPut_(ck, out, 600);
   return (MEM[k] = out);
 }
 function smsUpdate_(rows) {
   var sh = ownSheet_('sms');
   rows.forEach(function (o) { sh.getRange(o._row, 1, 1, SMS_COLS.length).setValues([SMS_COLS.map(function (c) { return o[c]; })]); });
+  smsVer_(true);
 }
 function smsInsert_(rows) {
   if (!rows.length) return;
@@ -237,6 +288,7 @@ function smsInsert_(rows) {
   sh.getRange(last + 1, 1, rows.length, SMS_COLS.length).setNumberFormat('@')
     .setValues(rows.map(function (r) { return SMS_COLS.map(function (c) { return r[c] == null ? '' : String(r[c]); }); }));
   for (var k in MEM) if (k.indexOf('sms_') === 0) delete MEM[k];
+  smsVer_(true);
 }
 
 /* ================================================================== */
@@ -247,6 +299,13 @@ function smsInsert_(rows) {
  * الرسالة تُجهَّز بعد انتهاء مهلة التصحيح (نهاية الحصة + CORRECTION_MINUTES).
  */
 function scan_(force) {
+  if (MEM.locked) return scanNow_(force);
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { queued: 0, busy: true };     // هاتف المؤسسة يفحص الآن: لا ننتظر
+  MEM.locked = true;
+  try { return scanNow_(force); } finally { MEM.locked = false; SpreadsheetApp.flush(); lock.releaseLock(); }
+}
+function scanNow_(force) {
   var props = P_();
   if (props.getProperty('ON') !== '1' || !props.getProperty('DAFTAR_ID')) return { queued: 0 };
   var nowS = Date.now() / 1000, last = Number(props.getProperty('LAST_SCAN') || 0);
@@ -254,7 +313,7 @@ function scan_(force) {
   props.setProperty('LAST_SCAN', String(Math.floor(nowS)));
 
   var date = today_(), since = Number(props.getProperty('ON_SINCE') || 0);
-  var abs = dByDate_('absences', 'absence_date', date);
+  var abs = absToday_(date, !!force);
   if (!abs.length) return { queued: 0 };
   var sched = indexBy_(dAll_('schedule'), 'id'), times = indexBy_(dAll_('session_times'), 'id');
   var classes = indexBy_(dAll_('classes'), 'id'), subjects = indexBy_(dAll_('subjects'), 'id'), students = indexBy_(dAll_('students'), 'id');
@@ -310,7 +369,7 @@ function render_(tpl, v) {
 /** قبل الإرسال: هل ما زال الغياب مسجلا في daftar؟ (المدير قد يحذف حصة أو يصحح) */
 function stillAbsent_(r) {
   if (r.kind !== 'abs' || !r.absence_ids) return true;
-  var ids = r.absence_ids.split(','), cur = indexBy_(dByDate_('absences', 'absence_date', r.sms_date), 'id');
+  var ids = r.absence_ids.split(','), cur = indexBy_(absToday_(r.sms_date, true), 'id');
   return ids.some(function (id) { return cur[id] && cur[id].student_id === r.student_id; });
 }
 
@@ -376,9 +435,12 @@ function login_(p) {
   var u = dAll_('users').filter(function (x) { return String(x.email).toLowerCase() === email && x.role === 'admin' && x.status === 'active'; })[0];
   if (!u || hashPassword_(pw, u.salt) !== u.password_hash) { cache.put(fk, String(fails + 1), 300); fail_('البريد أو كلمة المرور غير صحيحة (حساب المدير في دفتر الغيابات).'); }
   cache.remove(fk);
+  MEM.me = u;
   var days = p.device ? CFG.DEVICE_TOKEN_DAYS : CFG.TOKEN_DAYS;
   var payload = Utilities.base64EncodeWebSafe(JSON.stringify({ u: u.id, h: u.password_hash.substr(0, 12), e: Math.floor(Date.now() / 1000) + days * 86400 })).replace(/=+$/, '');
-  return { token: payload + '.' + sign_(payload), name: u.full_name, email: u.email };
+  var out = { token: payload + '.' + sign_(payload), name: u.full_name, email: u.email };
+  try { out.boot = admin_boot({}); } catch (e) {}       // الشاشة الأولى مع الدخول: طلب واحد بدل اثنين
+  return out;
 }
 
 function me_(token) {
@@ -397,7 +459,8 @@ function me_(token) {
 function admin_status(p) {
   var props = P_().getProperties(), date = /^\d{4}-\d{2}-\d{2}$/.test(p.date || '') ? p.date : today_();
   var scan = null;
-  if (date === today_()) { try { scan = scan_(true); } catch (e) { scan = { error: e.message }; } }
+  if (p.fresh) flushDaftar_();
+  if (date === today_()) { try { scan = scan_(!!p.fresh); } catch (e) { scan = { error: e.message }; } }
   var rows = smsRows_(date), st = {};
   rows.forEach(function (r) { st[r.status] = (st[r.status] || 0) + 1; });
   var seen = props.SEEN ? Math.round(Date.now() / 1000 - epochSql_(props.SEEN)) : null;
@@ -413,6 +476,9 @@ function admin_status(p) {
     })
   };
 }
+
+/** الشاشة الأولى + الإعدادات في طلب واحد */
+function admin_boot(p) { return { status: admin_status(p || {}), settings: admin_settings() }; }
 
 function admin_students() {
   var classes = indexBy_(dAll_('classes'), 'id');
@@ -447,8 +513,11 @@ function admin_settings() {
   var p = P_().getProperties();
   var url = ''; try { url = ScriptApp.getService().getUrl() || ''; } catch (e) {}
   url = url.replace(/\/dev$/, '/exec');
-  var dName = '', dUrl = '';
-  if (p.DAFTAR_ID) { try { var f = SpreadsheetApp.openById(p.DAFTAR_ID); dName = f.getName(); dUrl = f.getUrl(); } catch (e) { dName = 'تعذر فتح الملف'; } }
+  var dName = p.DAFTAR_NAME || '', dUrl = p.DAFTAR_URL || '';
+  if (p.DAFTAR_ID && !dUrl) {
+    try { var f = SpreadsheetApp.openById(p.DAFTAR_ID); dName = f.getName(); dUrl = f.getUrl(); P_().setProperties({ DAFTAR_NAME: dName, DAFTAR_URL: dUrl }); }
+    catch (e) { dName = 'تعذر فتح الملف'; }
+  }
   return { enabled: p.ON === '1', template: p.TEMPLATE || DEFAULT_TEMPLATE, default_template: DEFAULT_TEMPLATE, key: p.KEY || '',
            pair: url && p.KEY ? url + '#' + p.KEY : '', daftar_name: dName, daftar_url: dUrl, gap: CFG.GAP_SEC, late: CFG.CORRECTION_MINUTES };
 }
@@ -462,7 +531,8 @@ function admin_saveSettings(p) {
       var ss = SpreadsheetApp.openById(m[0]);
       if (!ss.getSheetByName('absences') || !ss.getSheetByName('students')) fail_('هذا ليس ملف قاعدة بيانات دفتر الغيابات.');
     } catch (e) { fail_(e.message.indexOf('دفتر') >= 0 ? e.message : 'تعذر فتح الملف: تأكد أنه على نفس حساب Google.'); }
-    set.DAFTAR_ID = m[0];
+    set.DAFTAR_ID = m[0]; set.DAFTAR_NAME = ss.getName(); set.DAFTAR_URL = ss.getUrl();
+    MEM.daftar = null; flushDaftar_();
   }
   if (p.template !== undefined) {
     var t = String(p.template || '').trim();
@@ -506,6 +576,7 @@ function admin_action(p) {
 var ROUTES = {
   'login':         { fn: login_ },
   'status':        { fn: admin_status, admin: true },
+  'boot':          { fn: admin_boot, admin: true },
   'students':      { fn: admin_students, admin: true },
   'savePhones':    { fn: admin_savePhones, admin: true, lock: true },
   'settings':      { fn: admin_settings, admin: true },
@@ -545,7 +616,8 @@ function doPost(e) {
   try {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     var action = req.action === 'sms.next' ? 'next' : String(req.action || '');
-    out = ROUTES[action] ? api(action, req.token || null, req.payload || {}) : { ok: false, error: 'طلب غير صالح.' };
+    if (action === 'ping') out = { ok: true, data: { t: Date.now() } };      // إيقاظ الخادم عند فتح التطبيق
+    else out = ROUTES[action] ? api(action, req.token || null, req.payload || {}) : { ok: false, error: 'طلب غير صالح.' };
   } catch (err) { out = { ok: false, error: 'طلب غير صالح.' }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }

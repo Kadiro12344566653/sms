@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 BT="${SDK_BT:?اضبط SDK_BT}"; JAR="${SDK_JAR:?اضبط SDK_JAR}"
 SRC=app/src/main; OUT=build
-PKG=dz.school.attendance.sms; VCODE=4; VNAME=2.0
+PKG=dz.school.attendance.sms; VCODE=5; VNAME=2.1
 rm -rf "$OUT"; mkdir -p "$OUT"/{gen,classes,dex}
 # الواجهة: نفس ملف الصفحة gas/Index.html (مصدر واحد للتطبيق والصفحة)
 cp ../gas/Index.html "$SRC/assets/www/index.html"

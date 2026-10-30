@@ -19,6 +19,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * تطبيق «رسائل الأولياء»: الواجهة (assets/www/index.html) + جسر Native:
@@ -30,6 +32,8 @@ public class MainActivity extends Activity {
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
     private boolean startAfterPerms = false;
+    /** طلبات الواجهة تعمل بالتوازي (حتى 4) بدل خيط جديد لكل طلب */
+    private static final ExecutorService NET = Executors.newFixedThreadPool(4);
 
     @Override
     protected void onCreate(Bundle b) {
@@ -61,6 +65,8 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(web);
+        // إيقاظ خادم Google مبكرا (بالتوازي مع تحميل الواجهة): أول طلب حقيقي يصبح أسرع
+        NET.execute(new Runnable() { public void run() { try { SmsService.post(Cfg.SERVER, "{\"action\":\"ping\"}"); } catch (Exception ignored) { } } });
         if (b != null) web.restoreState(b); else web.loadUrl("file:///android_asset/www/index.html");
     }
 
@@ -144,7 +150,7 @@ public class MainActivity extends Activity {
         /** طلب للخادم في الخلفية؛ النتيجة إلى window.__native(id, json) */
         @JavascriptInterface
         public void call(final String id, final String action, final String token, final String payload) {
-            new Thread(new Runnable() {
+            NET.execute(new Runnable() {
                 public void run() {
                     String out;
                     try {
@@ -159,7 +165,7 @@ public class MainActivity extends Activity {
                     final String js = "window.__native(" + JSONObject.quote(id) + "," + JSONObject.quote(out) + ")";
                     web.post(new Runnable() { public void run() { web.evaluateJavascript(js, null); } });
                 }
-            }).start();
+            });
         }
 
         @JavascriptInterface

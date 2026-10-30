@@ -222,7 +222,7 @@ public class SmsService extends Service {
         int hops = 0;
         while ((code == 301 || code == 302 || code == 303 || code == 307 || code == 308) && hops++ < 5) {
             String loc = c.getHeaderField("Location");
-            c.disconnect();
+            drain(c, code);                                // نقرأ الرد ونغلقه دون قطع الاتصال: يُعاد استعماله (أسرع)
             c = (HttpURLConnection) new URL(new URL(url), loc).openConnection();
             c.setInstanceFollowRedirects(false);
             c.setConnectTimeout(20000);
@@ -234,10 +234,20 @@ public class SmsService extends Service {
         byte[] buf = new byte[8192];
         int n;
         while (in != null && (n = in.read(buf)) > 0) bo.write(buf, 0, n);
-        c.disconnect();
+        if (in != null) in.close();                         // لا disconnect(): الاتصال المشفّر يبقى مفتوحا للطلب التالي
         String s = bo.toString("UTF-8").trim();
         if (!s.startsWith("{")) throw new Exception("HTTP " + code);
         return new JSONObject(s);
+    }
+
+    private static void drain(HttpURLConnection c, int code) {
+        try {
+            InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+            if (in == null) return;
+            byte[] b = new byte[4096];
+            while (in.read(b) > 0) { }
+            in.close();
+        } catch (Exception ignored) { }
     }
 
     /* ---------------- الإشعار الدائم ---------------- */
