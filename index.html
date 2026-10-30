@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#0b4b8a">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="preload" href="fonts/tajawal-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/tajawal-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>رسائل الأولياء</title>
+<style>
+/* داخل التطبيق: الخطوط من ملفات التطبيق (تعمل دون إنترنت)؛ في الصفحة: من Google Fonts */
+@font-face { font-family:Tajawal; font-weight:400; src:url(fonts/tajawal-arabic-400-normal.woff2) format("woff2") }
+@font-face { font-family:Tajawal; font-weight:700; src:url(fonts/tajawal-arabic-700-normal.woff2) format("woff2") }
+@font-face { font-family:Tajawal; font-weight:800; src:url(fonts/tajawal-arabic-800-normal.woff2) format("woff2") }
+:root { --bg:#eef3f9; --card:#fff; --ink:#12314f; --muted:#5d7791; --line:#d5e2ef; --brand:#0b4b8a; --brand2:#083a6b; --soft:#e3edf8;
+  --ok:#1b7f4b; --ok-soft:#e3f4ea; --warn:#9a5b00; --warn-soft:#fff4e0; --bad:#b4232c; --bad-soft:#fdecee;
+  --f:"Tajawal","Segoe UI","Noto Sans Arabic",Tahoma,sans-serif; --mono:ui-monospace,Menlo,Consolas,monospace; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+html, body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 var(--f) }
+.top { background:linear-gradient(180deg,var(--brand),var(--brand2)); color:#fff; padding:calc(14px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left)); position:sticky; top:0; z-index:5 }
+.brand { display:flex; align-items:center; gap:10px }
+.logo { width:38px; height:38px; border-radius:11px; background:#fff; color:var(--brand); display:grid; place-items:center; flex:none }
+.logo svg { width:22px; height:22px }
+.top.busy::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:linear-gradient(90deg,transparent,#f0c24b,transparent); background-size:50% 100%; background-repeat:no-repeat; animation:bar 1s linear infinite }
+@keyframes bar { from { background-position:-50% 0 } to { background-position:150% 0 } }
+@media (prefers-reduced-motion:reduce) { .top.busy::after { animation:none; background:#f0c24b; opacity:.6 } }
+.top h1 { margin:0; font-size:1.2rem; font-weight:800; line-height:1.2 } .top p { margin:0; opacity:.8; font-size:.8rem }
+.tabs { display:flex; gap:2px; margin-top:12px }
+.tabs button { flex:1; font:inherit; font-weight:700; font-size:.92rem; color:#cfe0f3; background:none; border:0; padding:10px 6px; border-radius:12px 12px 0 0; cursor:pointer; white-space:nowrap }
+.tabs button.on { background:var(--bg); color:var(--brand) }
+main { max-width:760px; margin:0 auto; padding:16px max(16px,env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); display:flex; flex-direction:column; gap:14px }
+.card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:12px; min-width:0 }
+.card h2 { margin:0; font-size:1.05rem; font-weight:800 }
+.note { margin:0; color:var(--muted); font-size:.9rem }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end } .row > * { flex:1 1 170px; min-width:0 }
+.between { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap }
+label { display:flex; flex-direction:column; gap:5px; font-weight:700; font-size:.88rem }
+input, textarea, select { font:inherit; color:var(--ink); background:var(--bg); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; width:100% }
+textarea { resize:vertical; min-height:90px }
+.ltr { direction:ltr; text-align:right; font-family:var(--mono) }
+.btn { font:inherit; font-weight:800; border:0; border-radius:12px; padding:12px 16px; cursor:pointer; background:var(--brand); color:#fff; text-decoration:none; text-align:center; display:inline-flex; justify-content:center; align-items:center; gap:6px }
+.btn.soft { background:var(--soft); color:var(--brand) } .btn.ok { background:var(--ok) } .btn.bad { background:var(--bad-soft); color:var(--bad) } .btn.ghost { background:none; color:var(--muted); border:1.5px solid var(--line) }
+.btn.sm { padding:7px 12px; font-size:.85rem } .btn.lg { padding:16px; font-size:1.08rem; width:100% }
+.btn[disabled], .btn[aria-busy] { opacity:.55; pointer-events:none }
+button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid #f0c24b; outline-offset:2px }
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px }
+@media (max-width:480px) { .stats { grid-template-columns:repeat(2,1fr) } }
+.stats div { background:var(--bg); border-radius:14px; padding:10px 6px; text-align:center; display:flex; flex-direction:column }
+.stats b { font-size:1.45rem; color:var(--brand); font-variant-numeric:tabular-nums; line-height:1.3 } .stats span { font-size:.78rem; color:var(--muted) }
+.stats .bad b { color:var(--bad) }
+.dev { display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:14px; background:var(--bad-soft) }
+.dev.on { background:var(--ok-soft) } .dev.wait { background:var(--warn-soft) }
+.dot { width:12px; height:12px; border-radius:50%; background:var(--bad); flex:none } .dev.on .dot { background:var(--ok); box-shadow:0 0 0 4px rgba(27,127,75,.18) } .dev.wait .dot { background:var(--warn) }
+.dev .t { display:flex; flex-direction:column; min-width:0; flex:1 } .dev small { color:var(--muted); overflow-wrap:anywhere }
+.gw { border:2px solid var(--ok) } .gw.off { border-color:var(--line) }
+.warnline { background:var(--warn-soft); color:var(--warn); border-radius:12px; padding:10px 12px; font-size:.88rem; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap }
+ul.list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column }
+ul.list li { display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap }
+ul.list li:last-child { border-bottom:0 }
+.grow { flex:1 1 200px; min-width:0; display:flex; flex-direction:column } .grow small { color:var(--muted); overflow-wrap:anywhere }
+.chip { border-radius:999px; padding:2px 10px; font-size:.8rem; font-weight:700; background:var(--soft); color:var(--brand); white-space:nowrap }
+.c-pending, .c-sending { background:var(--warn-soft); color:var(--warn) } .c-sent { background:var(--ok-soft); color:var(--ok) }
+.c-failed, .c-no_phone { background:var(--bad-soft); color:var(--bad) } .c-cancelled { background:var(--bg); color:var(--muted) }
+.phone { width:150px; flex:none } .phone.has { border-color:var(--ok); background:var(--ok-soft) } .phone.bad { border-color:var(--bad) }
+.toast { position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); left:16px; right:16px; margin:auto; max-width:520px; padding:12px 16px; border-radius:14px; background:var(--ink); color:#fff; font-weight:700; z-index:50; box-shadow:0 10px 30px rgba(0,0,0,.2) }
+.toast.err { background:var(--bad) }
+.switch { display:flex; flex-direction:row; gap:10px; align-items:center; font-weight:800 } .switch input { width:22px; height:22px; flex:none }
+.login { max-width:420px; margin:6vh auto 0; width:100% }
+.login .logo { width:64px; height:64px; border-radius:18px; background:var(--brand); color:#fff; margin:0 auto } .login .logo svg { width:34px; height:34px }
+.center { text-align:center }
+.skel { height:16px; border-radius:8px; background:linear-gradient(90deg,var(--line),var(--bg),var(--line)); background-size:200% 100%; animation:sk 1.2s infinite }
+@keyframes sk { to { background-position:-200% 0 } }
+@media (prefers-reduced-motion:reduce) { .skel { animation:none } }
+[hidden] { display:none !important }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script>window.SMS_API = "https://script.google.com/macros/s/AKfycbxe0mtu9Ix6v_oVhWT0skpWbkLlX_Ji3DS9XM_LxQFSAsjsLLHXAjM7VUhOY_hY-jBX-g/exec";</script>
+<script>
+/* ======================================================================
+   رسائل الأولياء — واجهة واحدة:
+   - داخل تطبيق Android (window.Native): الطلبات عبر الهاتف + هذا الهاتف يرسل الرسائل
+   - في المتصفح (صفحة Google Apps Script): google.script.run
+   ====================================================================== */
+var NATIVE = !!window.Native;
+var WEB_API = window.SMS_API || '';      // الصفحة على GitHub Pages: الطلبات مباشرة إلى خادم Apps Script (fetch)
+var S = { token: null, name: '', tab: 'today', date: '', cls: '', students: null };
+var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>';
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+if (NATIVE) { try { var ss = JSON.parse(Native.session()); S.token = ss.token || null; S.name = ss.name || ''; } catch (e) {} }
+else { S.token = store('sms_token'); S.name = store('sms_name') || ''; }
+
+var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function toast(m, err) { var t = $('#toast'); t.textContent = m; t.className = 'toast' + (err ? ' err' : ''); t.hidden = false; clearTimeout(t._t); t._t = setTimeout(function () { t.hidden = true; }, 4200); }
+
+/* ---------- الاتصال بالخادم ---------- */
+var CB = {}, CBN = 0;
+window.__native = function (id, json) { var f = CB[id]; delete CB[id]; if (f) f(json); };
+function api(action, payload) {
+  return new Promise(function (ok, no) {
+    var done = function (r) {
+      if (r && r.auth) { setSession(null); render(); return no(new Error(r.error)); }
+      r && r.ok ? ok(r.data) : no(new Error(r && r.error || 'خطأ غير معروف.'));
+    };
+    if (NATIVE) {
+      var id = 'c' + (++CBN);
+      CB[id] = function (json) { var r; try { r = JSON.parse(json); } catch (e) { r = { ok: false, error: 'رد غير صالح من الخادم.' }; } done(r); };
+      Native.call(id, action, S.token || '', JSON.stringify(payload || {}));
+    } else if (WEB_API) {
+      // نص عادي (text/plain) = طلب بسيط بلا «preflight»؛ Google تسمح به من أي موقع (CORS)
+      fetch(WEB_API, { method: 'POST', body: JSON.stringify({ action: action, token: S.token || '', payload: payload || {} }), redirect: 'follow', credentials: 'omit' })
+        .then(function (r) { return r.json(); }).then(done)
+        .catch(function () { no(new Error('تعذر الاتصال بالخادم. تحقق من الإنترنت.')); });
+    } else {
+      google.script.run.withSuccessHandler(done).withFailureHandler(function () { no(new Error('تعذر الاتصال. تحقق من الإنترنت.')); }).api(action, S.token, payload || {});
+    }
+  });
+}
+function setSession(d) {
+  S.token = d ? d.token : null; S.name = d ? d.name : '';
+  if (!d) { S.cache = {}; S.prefetched = false; store('sms_cache', null); }
+  if (NATIVE) Native.setSession(d ? JSON.stringify(d) : '');
+  else { store('sms_token', d ? d.token : null); store('sms_name', d ? d.name : null); }
+}
+function normPhone(v) {
+  var d = String(v == null ? '' : v).replace(/[٠-٩]/g, function (c) { return String(c.charCodeAt(0) - 0x660); }).replace(/[^\d+]/g, '');
+  d = d.replace(/^\+213/, '0').replace(/^00213/, '0').replace(/^213(?=[567]\d{8}$)/, '0');
+  if (/^[567]\d{8}$/.test(d)) d = '0' + d;
+  return /^0[567]\d{8}$/.test(d) ? d : '';
+}
+function gw() { if (!NATIVE) return null; try { return JSON.parse(Native.gwInfo()); } catch (e) { return null; } }
+
+/* ---------- الهيكل ---------- */
+function shell(body) {
+  var tabs = [['today', 'اليوم'], ['parents', 'هواتف الأولياء'], ['settings', 'الإعدادات']];
+  $('#app').innerHTML = '<header class="top"><div class="brand"><span class="logo">' + ICON + '</span><span><h1>رسائل الأولياء</h1>' +
+    '<p>متوسطة الشهيد بدراني بوعمامة' + (S.name ? ' — ' + esc(S.name) : '') + '</p></span></div>' +
+    (S.token ? '<nav class="tabs" role="tablist">' + tabs.map(function (t) { return '<button role="tab" aria-selected="' + (S.tab === t[0]) + '" data-tab="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</nav>' : '<div style="height:14px"></div>') +
+    '</header><main>' + body + '</main>';
+}
+function loading() { shell('<div class="card"><div class="skel"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:40%"></div></div>'); }
+function errorCard(e) { shell('<div class="card"><p class="note" style="color:var(--bad)">' + esc(e.message) + '</p><button class="btn soft" onclick="render()">إعادة المحاولة</button></div>'); }
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-tab]'); if (t) { S.tab = t.getAttribute('data-tab'); render(); }
+});
+
+/* ---------- الدخول ---------- */
+function loginView() {
+  shell('<form class="card login" id="lf"><span class="logo">' + ICON + '</span><h2 class="center">دخول المدير</h2>' +
+    '<p class="note center">بنفس البريد الإلكتروني وكلمة المرور الخاصين بحساب المدير في <b>دفتر الغيابات</b>.</p>' +
+    '<label for="em">البريد الإلكتروني<input id="em" name="email" type="email" dir="ltr" required autocomplete="username" placeholder="admin@school.dz"></label>' +
+    '<label for="pw">كلمة المرور<input id="pw" name="password" type="password" dir="ltr" required autocomplete="current-password"></label>' +
+    '<button class="btn lg">دخول</button>' +
+    (NATIVE ? '<p class="note center">بعد الدخول يصبح هذا الهاتف هو الذي يرسل الرسائل للأولياء من شريحته.</p>' : '') + '</form>');
+  $('#lf').onsubmit = function (e) {
+    e.preventDefault(); var b = $('button', this); b.setAttribute('aria-busy', '1'); b.textContent = 'جارٍ الدخول…';
+    api('login', { email: this.email.value, password: this.password.value, device: NATIVE }).then(function (d) {
+      setSession(d); S.tab = 'today'; S.cache = {};
+      if (d.boot) { S.cache.status_today = d.boot.status; S.cache.settings = d.boot.settings; }
+      saveCache(); S.prefetched = false; render();
+    }).catch(function (er) { b.removeAttribute('aria-busy'); b.textContent = 'دخول'; toast(er.message, 1); });
+  };
+}
+
+/* ---------- اليوم ---------- */
+var ST = { pending: 'في الانتظار', sending: 'قيد الإرسال', sent: 'أُرسلت', failed: 'فشلت', cancelled: 'أُلغيت', no_phone: 'بدون هاتف' };
+function gwCard(d) {
+  if (NATIVE) {
+    var g = gw() || {};
+    if (!g.running) {
+      return '<section class="card gw off"><h2>هذا الهاتف لا يرسل بعد</h2>' +
+        '<p class="note">شغّل الإرسال على <b>هاتف المؤسسة</b> (الذي فيه الشريحة): يأخذ الرسائل الجاهزة ويرسلها من شريحته، رسالة كل ' + Math.round((d.gap || 90) / 6) / 10 + ' دقيقة، حتى والتطبيق مغلق.</p>' +
+        simSelect(g) + '<button class="btn ok lg" id="gwOn">تشغيل الإرسال من هذا الهاتف</button></section>';
+    }
+    return '<section class="card gw"><div class="between"><h2>✓ هذا الهاتف يرسل الرسائل</h2><button class="btn sm bad" id="gwOff">إيقاف</button></div>' +
+      '<div class="dev on" id="gwBox"><span class="dot"></span><span class="t"><b id="gwSim">' + esc(g.sim_label || 'الشريحة الافتراضية') + '</b><small id="gwSt">' + esc(g.status || '') + '</small></span>' +
+      '<span class="chip" id="gwN">' + (g.sent_today || 0) + ' اليوم</span></div>' +
+      (g.battery_ok === false ? '<div class="warnline"><span>النظام قد يوقف الإرسال لتوفير البطارية.</span><button class="btn sm soft" id="gwBat">السماح بالعمل دائما</button></div>' : '') +
+      (g.sms_permission === false ? '<div class="warnline"><span>لا يوجد إذن إرسال الرسائل.</span><button class="btn sm soft" id="gwPerm">السماح</button></div>' : '') +
+      '</section>';
+  }
+  var on = d.seen_ago !== null && d.seen_ago < 180;
+  var ago = d.seen_ago === null ? 'لم يتصل بعد' : d.seen_ago < 90 ? 'متصل الآن' : d.seen_ago < 3600 ? 'آخر اتصال قبل ' + Math.round(d.seen_ago / 60) + ' دقيقة' : 'آخر اتصال: ' + esc(d.seen.substr(0, 16));
+  return '<section class="card"><h2>هاتف المؤسسة</h2><div class="dev ' + (on ? 'on' : '') + '"><span class="dot"></span><span class="t"><b>' + esc(d.device || 'هاتف المؤسسة') + '</b><small>' + ago + '</small></span></div>' +
+    '<p class="note">الرسائل تُرسل من تطبيق <b>«رسائل الأولياء»</b> على الهاتف الذي فيه شريحة المؤسسة: ادخل فيه بحساب المدير واضغط «تشغيل الإرسال من هذا الهاتف».</p></section>';
+}
+function simSelect(g) {
+  if (!g.sims || g.sims.length < 2) return g.sims && g.sims.length === 1 ? '<p class="note">الشريحة: <b>' + esc(g.sims[0].carrier) + (g.sims[0].number ? ' (' + esc(g.sims[0].number) + ')' : '') + '</b></p>' : '';
+  return '<label for="sim">في هذا الهاتف شريحتان: أيهما شريحة المؤسسة؟<select id="sim">' + g.sims.map(function (x) {
+    return '<option value="' + x.id + '"' + (x.id === g.sub ? ' selected' : '') + '>الشريحة ' + x.slot + ' — ' + esc(x.carrier) + (x.number ? ' (' + esc(x.number) + ')' : '') + '</option>'; }).join('') + '</select></label>';
+}
+function todayView() { show('status_' + (S.date || 'today'), 'status', { date: S.date }, buildToday); }
+function buildToday(d) {
+    var s = d.stats, h = '';
+    if (!d.daftar_ok) h += '<div class="card" style="background:var(--bad-soft)"><b>ملف دفتر الغيابات غير محدد.</b><p class="note">افتح «الإعدادات» والصق رابط ملف «دفتر الغيابات — قاعدة البيانات».</p></div>';
+    h += gwCard(d);
+    h += '<section class="card"><div class="between"><h2>' + (d.enabled ? '✓ إرسال الرسائل مفعّل' : '✗ إرسال الرسائل موقوف') + '</h2>' +
+      '<button class="btn sm ' + (d.enabled ? 'bad' : 'ok') + '" id="tog">' + (d.enabled ? 'إيقاف' : 'تفعيل') + '</button></div>' +
+      '<div class="stats"><div><b>' + (s.sent || 0) + '</b><span>أُرسلت</span></div><div><b>' + ((s.pending || 0) + (s.sending || 0)) + '</b><span>في الانتظار</span></div>' +
+      '<div class="' + (s.failed ? 'bad' : '') + '"><b>' + (s.failed || 0) + '</b><span>فشلت</span></div><div class="' + (s.no_phone ? 'bad' : '') + '"><b>' + (s.no_phone || 0) + '</b><span>بدون هاتف</span></div></div>' +
+      '<p class="note">' + d.with_phone + ' من ' + d.total + ' تلميذ لهم هاتف ولي. الرسالة تُجهَّز بعد نهاية الحصة بـ ' + (d.late || 10) + ' دقائق (مهلة تصحيح الأستاذ).</p>' +
+      (d.scan_err ? '<p class="note" style="color:var(--bad)">' + esc(d.scan_err) + '</p>' : '') + '</section>';
+    h += '<section class="card"><div class="between"><h2>الرسائل</h2><span class="row" style="flex:0 0 auto;gap:8px"><button class="btn sm soft" id="rf" style="flex:none">تحديث</button>' +
+      '<input type="date" id="dt" value="' + esc(d.date) + '" style="width:auto;flex:none" aria-label="اليوم"></span></div>' +
+      ((s.failed || s.pending) ? '<div class="row" style="flex:0">' + (s.failed ? '<button class="btn sm soft" data-op="retry" style="flex:none">إعادة إرسال الفاشلة</button>' : '') +
+      (s.pending ? '<button class="btn sm bad" data-op="cancel" style="flex:none">إلغاء المنتظرة</button>' : '') + '</div>' : '');
+    h += d.list.length ? '<ul class="list">' + d.list.map(function (r) {
+      return '<li><span class="grow"><b>' + esc(r.name) + (r.label ? ' <span class="chip">' + esc(r.label) + '</span>' : '') + (r.kind === 'test' ? ' <span class="chip">تجربة</span>' : '') + '</b>' +
+        '<small class="ltr">' + esc(r.phone || '—') + ' · ' + esc(r.time) + '</small><small>' + esc(r.text) + '</small>' +
+        (r.error && r.status !== 'sent' ? '<small style="color:var(--bad)">' + esc(r.error) + '</small>' : '') + '</span>' +
+        '<span class="chip c-' + r.status + '">' + (ST[r.status] || r.status) + '</span>' +
+        (r.status === 'pending' ? '<button class="btn sm bad" data-op="cancel_one" data-id="' + r.id + '">إلغاء</button>' : '') + '</li>';
+    }).join('') + '</ul>' : '<p class="note">لا توجد رسائل في هذا اليوم. تظهر هنا بعد أن يسجّل الأساتذة الغيابات وتنتهي مهلة التصحيح.</p>';
+    shell(h + '</section>');
+    prefetch();
+    $('#dt').onchange = function () { S.date = this.value; render(); };
+    $('#rf').onclick = function () { var b = this; b.setAttribute('aria-busy', '1'); markUpdating(true);
+      api('status', { date: S.date, fresh: true }).then(function (x) { S.cache['status_' + (S.date || 'today')] = x; saveCache(); markUpdating(false); buildToday(x); toast('تم التحديث من دفتر الغيابات.'); })
+        .catch(function (e) { b.removeAttribute('aria-busy'); markUpdating(false); toast(e.message, 1); }); };
+    $('#tog').onclick = function () {                       // يظهر التغيير فورا، ثم يُحفظ
+      var want = !d.enabled; d.enabled = want; buildToday(d);
+      api('saveSettings', { enabled: want }).then(function (r) { toast(r.message); if (S.cache.settings) S.cache.settings.enabled = want; saveCache(); })
+        .catch(function (e) { d.enabled = !want; buildToday(d); toast(e.message, 1); });
+    };
+    $$('[data-op]').forEach(function (b) { b.onclick = function () { b.setAttribute('aria-busy', '1');
+      api('action', { op: b.getAttribute('data-op'), id: b.getAttribute('data-id') }).then(function (r) { toast(r.message); render(); }).catch(function (e) { b.removeAttribute('aria-busy'); toast(e.message, 1); }); }; });
+    if ($('#gwOn')) $('#gwOn').onclick = function () {
+      var sub = $('#sim') ? Number($('#sim').value) : -1;
+      Native.gwStart(sub);
+      if (!d.enabled) api('saveSettings', { enabled: true }).catch(function () {});
+      toast('جارٍ تشغيل الإرسال… اضغط «سماح» إن طلب الهاتف ذلك.');
+      setTimeout(render, 1500);
+    };
+    if ($('#gwOff')) $('#gwOff').onclick = function () { Native.gwStop(); toast('أُوقف الإرسال من هذا الهاتف.'); setTimeout(render, 500); };
+    if ($('#gwBat')) $('#gwBat').onclick = function () { Native.openBattery(); };
+    if ($('#gwPerm')) $('#gwPerm').onclick = function () { Native.askPermissions(); };
+    clearInterval(S.live);
+    if (NATIVE && $('#gwBox')) S.live = setInterval(function () {
+      if (!$('#gwBox')) return clearInterval(S.live);
+      var g = gw() || {}; $('#gwSt').textContent = g.status || ''; $('#gwN').textContent = (g.sent_today || 0) + ' اليوم';
+    }, 3000);
+    clearTimeout(S.refresh); S.refresh = setTimeout(function () { if (S.tab === 'today' && S.token && !document.hidden) render(); }, 60000);
+}
+window.onNativeChange = function () { if (S.tab === 'today' && S.token) render(); };
+
+/* ---------- هواتف الأولياء ---------- */
+function parentsView() { show('students', 'students', {}, buildParents); }
+function buildParents(d) {
+    S.students = d.students;
+    var classes = []; d.students.forEach(function (s) { if (classes.indexOf(s.label) < 0) classes.push(s.label); });
+    if (!S.cls || classes.indexOf(S.cls) < 0) S.cls = classes[0] || '';
+    var withP = d.students.filter(function (s) { return s.phone; }).length;
+    var h = '<section class="card"><h2>استيراد من ملف Excel</h2><p class="note">ملف فيه عمود <b>رقم التعريف</b> وعمود <b>هاتف الولي</b> (يكفي الاسم إن لم يوجد رقم التعريف). يُربط كل رقم بتلميذه تلقائيا.</p>' +
+      '<div class="row"><input type="file" id="xf" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><button class="btn soft" id="xr" style="flex:0 0 auto">قراءة الملف</button></div><div id="xprev"></div></section>';
+    h += '<section class="card"><div class="between"><h2>الإدخال اليدوي <span class="chip">' + withP + ' / ' + d.students.length + '</span></h2>' +
+      '<select id="cls" style="width:auto;min-width:140px" aria-label="القسم">' + classes.map(function (c) { var n = d.students.filter(function (s) { return s.label === c; }), k = n.filter(function (s) { return s.phone; }).length;
+        return '<option value="' + esc(c) + '"' + (c === S.cls ? ' selected' : '') + '>' + esc(c) + ' (' + k + '/' + n.length + ')</option>'; }).join('') + '</select></div>' +
+      '<ul class="list">' + d.students.filter(function (s) { return s.label === S.cls; }).map(function (s, i) {
+        return '<li><span class="grow"><b>' + (i + 1) + '. ' + esc(s.name) + '</b><small class="ltr">' + esc(s.nid || 'بدون رقم تعريف') + '</small></span>' +
+          '<input class="phone ltr' + (s.phone ? ' has' : '') + '" inputmode="tel" placeholder="06xxxxxxxx" data-id="' + esc(s.id) + '" data-old="' + esc(s.phone) + '" value="' + esc(s.phone) + '" aria-label="هاتف ولي ' + esc(s.name) + '"></li>';
+      }).join('') + '</ul><button class="btn" id="ps">حفظ هواتف هذا القسم</button></section>';
+    shell(h);
+    $('#cls').onchange = function () { S.cls = this.value; buildParents(S.cache.students || d); };
+    $$('.phone').forEach(function (i) { i.oninput = function () { var v = i.value.trim(); i.classList.toggle('bad', !!v && !normPhone(v)); i.classList.toggle('has', !!normPhone(v)); }; });
+    $('#ps').onclick = function () {
+      var items = [], bad = 0;
+      $$('.phone').forEach(function (i) { var v = i.value.trim(), n = normPhone(v); if (v && !n) { bad++; return; } if (n !== i.getAttribute('data-old')) items.push({ id: i.getAttribute('data-id'), phone: n }); });
+      if (bad) return toast(bad + ' رقم غير صحيح (بالأحمر). الرقم النقال: 05/06/07 + 8 أرقام.', 1);
+      if (!items.length) return toast('لا يوجد تغيير.');
+      var b = this; b.setAttribute('aria-busy', '1');
+      api('savePhones', { items: items }).then(function (r) {
+        toast(r.message);
+        var map = {}; items.forEach(function (x) { map[x.id] = x.phone; });
+        (S.cache.students.students || []).forEach(function (st) { if (map[st.id] !== undefined) st.phone = map[st.id]; });
+        saveCache(); buildParents(S.cache.students); delete S.cache['status_today'];
+      }).catch(function (e) { b.removeAttribute('aria-busy'); toast(e.message, 1); });
+    };
+    $('#xr').onclick = readExcel;
+}
+
+function loadXlsx() {
+  return new Promise(function (ok, no) {
+    if (window.XLSX) return ok();
+    var s = document.createElement('script');
+    s.src = (NATIVE || WEB_API) ? 'xlsx.full.min.js' : 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = ok; s.onerror = function () { no(new Error('تعذر تحميل أداة قراءة Excel.')); };
+    document.head.appendChild(s);
+  });
+}
+function nrm(s) { return String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ًٌٍَُِّْـ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+function readExcel() {
+  var f = $('#xf').files[0]; if (!f) return toast('اختر الملف أولا.', 1);
+  var b = $('#xr'); b.setAttribute('aria-busy', '1');
+  loadXlsx().then(function () {
+    return new Promise(function (ok, no) { var fr = new FileReader(); fr.onload = function () { ok(fr.result); }; fr.onerror = function () { no(new Error('تعذرت قراءة الملف.')); }; fr.readAsArrayBuffer(f); });
+  }).then(function (buf) {
+    b.removeAttribute('aria-busy');
+    var wb = XLSX.read(new Uint8Array(buf), { type: 'array' }), found = [];
+    wb.SheetNames.forEach(function (sn) {
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: false, defval: '' });
+      var hr = -1, cN = -1, cP = -1, cName = -1, cLast = -1, cFirst = -1;
+      for (var r = 0; r < Math.min(rows.length, 30) && hr < 0; r++) {
+        rows[r].forEach(function (v, c) {
+          var n = nrm(v);
+          if (/تعريف|matricule|identifiant/.test(n)) cN = c;
+          else if (/هاتف|جوال|نقال|tel|mobile|phone|portable|gsm/.test(n)) cP = c;
+          else if (/الاسم واللقب|الاسم و اللقب|اللقب والاسم|اسم التلميذ|اسم التلميد|nom et prenom|nom complet/.test(n)) cName = c;
+          else if (n === 'اللقب' || n === 'nom') cLast = c; else if (n === 'الاسم' || n === 'prenom') cFirst = c;
+        });
+        if (cP >= 0 && (cN >= 0 || cName >= 0 || cLast >= 0)) hr = r; else { cN = cP = cName = cLast = cFirst = -1; }
+      }
+      if (hr < 0) return;
+      rows.slice(hr + 1).forEach(function (row) {
+        var ph = normPhone(row[cP]); if (!ph) return;
+        var name = cName >= 0 ? row[cName] : ((cLast >= 0 ? row[cLast] : '') + ' ' + (cFirst >= 0 ? row[cFirst] : ''));
+        found.push({ nid: cN >= 0 ? String(row[cN]).replace(/\D/g, '') : '', name: nrm(name), phone: ph });
+      });
+    });
+    var byNid = {}, byName = {}, cnt = {};
+    S.students.forEach(function (s) { if (s.nid) byNid[s.nid] = s; var k = nrm(s.name); cnt[k] = (cnt[k] || 0) + 1; byName[k] = s; });
+    var items = [], miss = 0, seen = {};
+    found.forEach(function (x) {
+      var s = (x.nid && byNid[x.nid]) || (cnt[x.name] === 1 ? byName[x.name] : null);
+      if (!s) { miss++; return; } if (seen[s.id]) return; seen[s.id] = 1;
+      items.push({ id: s.id, phone: x.phone, old: s.phone });
+    });
+    var changed = items.filter(function (i) { return i.phone !== i.old; });
+    $('#xprev').innerHTML = !found.length ? '<p class="note" style="color:var(--bad)">لم أجد عمود «هاتف الولي» فيه أرقام نقالة صحيحة.</p>' :
+      '<p class="note">وجدت <b>' + found.length + '</b> رقما: <b>' + items.length + '</b> تلميذ مطابق (' + changed.length + ' جديد أو متغيّر)' + (miss ? '، و<b>' + miss + '</b> لم أجد تلميذه في دفتر الغيابات' : '') + '.</p>' +
+      (changed.length ? '<button class="btn ok" id="xs">حفظ ' + changed.length + ' رقم</button>' : '');
+    if ($('#xs')) $('#xs').onclick = function () {
+      var bb = this; bb.setAttribute('aria-busy', '1');
+      api('savePhones', { items: changed.map(function (i) { return { id: i.id, phone: i.phone }; }) }).then(function (r) { toast(r.message); delete S.cache.students; delete S.cache['status_today']; parentsView(); }).catch(function (e) { bb.removeAttribute('aria-busy'); toast(e.message, 1); });
+    };
+  }).catch(function (e) { b.removeAttribute('aria-busy'); toast('تعذرت قراءة الملف: ' + e.message, 1); });
+}
+
+/* ---------- الإعدادات ---------- */
+function settingsView() { show('settings', 'settings', {}, buildSettings); }
+function buildSettings(d) {
+    var demo = { 'التلميذ': 'بركات محمد', 'القسم': '1م1', 'التاريخ': '30/10', 'اليوم': 'الخميس', 'المادة': 'رياضيات', 'البداية': '08:00', 'النهاية': '09:00' };
+    var h = '<section class="card"><h2>نص الرسالة</h2><label class="switch"><input type="checkbox" id="en"' + (d.enabled ? ' checked' : '') + '> تفعيل إرسال الرسائل للأولياء</label>' +
+      '<label for="tp">النص — يمكن استعمال: {التلميذ} {القسم} {التاريخ} {اليوم} {المادة} {البداية} {النهاية}<textarea id="tp">' + esc(d.template) + '</textarea></label>' +
+      '<p class="note">مثال: <span id="sm"></span></p><p class="note" id="ln"></p>' +
+      '<div class="row"><button class="btn" id="sv">حفظ</button><button class="btn soft" id="df" style="flex:0 0 auto">النص الافتراضي</button></div></section>';
+    h += '<section class="card"><h2>رسالة تجريبية</h2><p class="note">تُرسل فورا إلى الرقم الذي تكتبه، دون انتظار غياب حقيقي. يجب أن يكون الإرسال مشغّلا على هاتف المؤسسة.</p>' +
+      '<form id="tf" style="display:flex;flex-direction:column;gap:12px"><div class="row"><label for="tph">رقم المستقبِل<input id="tph" name="phone" class="ltr" inputmode="tel" placeholder="0664172468"></label>' +
+      '<label for="tnm">الاسم (للسجل)<input id="tnm" name="name" placeholder="ولي بركات محمد"></label></div>' +
+      '<label for="ttx">النص<textarea id="ttx" name="text">رسالة تجريبية من متوسطة الشهيد بدراني بوعمامة: خدمة إشعار الأولياء بغياب أبنائهم. لا داعي للرد.</textarea></label>' +
+      '<button class="btn ok">إرسال تجريبي</button></form></section>';
+    h += '<section class="card"><h2>ملف دفتر الغيابات</h2><p class="note">' + (d.daftar_url ? '✓ مربوط (قراءة فقط): <a href="' + esc(d.daftar_url) + '" target="_blank" rel="noopener">' + esc(d.daftar_name) + '</a>' : '✗ غير محدد') + '</p>' +
+      '<form id="dfm" class="row"><input name="link" class="ltr" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="رابط ملف دفتر الغيابات"><button class="btn soft" style="flex:0 0 auto">حفظ الرابط</button></form></section>';
+    h += '<section class="card"><h2>الحساب</h2><p class="note">' + esc(S.name) + (NATIVE ? ' — التطبيق ' + esc(Native.version()) : '') + '. رسالة كل ' + Math.round(d.gap / 6) / 10 + ' دقيقة، وتُجهَّز بعد نهاية الحصة بـ ' + d.late + ' دقائق.</p>' +
+      '<button class="btn ghost" id="lo">تسجيل الخروج</button></section>';
+    shell(h);
+    var tp = $('#tp');
+    function upd() {
+      var t = tp.value.replace(/\{([^}]+)\}/g, function (m, k) { return demo[k] !== undefined ? demo[k] : m; }).replace(/\s+/g, ' ').trim();
+      $('#sm').textContent = t; var p = t.length <= 70 ? 1 : Math.ceil(t.length / 67);
+      $('#ln').textContent = t.length + ' حرفا = ' + p + (p === 1 ? ' رسالة' : ' أجزاء') + ' لكل ولي (الرسالة العربية 70 حرفا للجزء).';
+    }
+    tp.oninput = upd; upd();
+    $('#df').onclick = function () { tp.value = d.default_template; upd(); };
+    $('#sv').onclick = function () { api('saveSettings', { template: tp.value, enabled: $('#en').checked }).then(function (r) {
+      toast(r.message); d.template = tp.value; d.enabled = $('#en').checked; saveCache(); delete S.cache['status_today']; }).catch(function (e) { toast(e.message, 1); }); };
+    $('#tf').onsubmit = function (e) { e.preventDefault(); var f = this, b = $('button', f); b.setAttribute('aria-busy', '1');
+      api('test', { phone: f.phone.value, name: f.name.value, text: f.text.value }).then(function (r) { b.removeAttribute('aria-busy'); toast(r.message); }).catch(function (er) { b.removeAttribute('aria-busy'); toast(er.message, 1); }); };
+    $('#dfm').onsubmit = function (e) { e.preventDefault(); api('saveSettings', { daftar_link: this.link.value }).then(function (r) { toast(r.message); S.cache = {}; saveCache(); settingsView(); }).catch(function (er) { toast(er.message, 1); }); };
+    $('#lo').onclick = function () {
+      var g = gw(), btn = this;
+      if (g && g.running && !btn._sure) { btn._sure = true; btn.textContent = 'اضغط مرة أخرى: سيتوقف الإرسال من هذا الهاتف'; btn.className = 'btn bad'; return; }
+      if (NATIVE) Native.gwStop();
+      setSession(null); render();
+    };
+}
+
+/* ---------- السرعة: عرض آخر بيانات محفوظة فورا، ثم تحديثها في الخلفية ---------- */
+S.cache = {}; S.seq = 0;
+try { var cc = JSON.parse(store('sms_cache') || '{}'); if (cc && cc.t === S.token) S.cache = cc.d || {}; } catch (e) {}
+function saveCache() { try { store('sms_cache', JSON.stringify({ t: S.token, d: S.cache })); } catch (e) {} }
+function editing() { return $$('.phone').some(function (i) { return i.value.trim() !== (i.getAttribute('data-old') || ''); }); }
+function show(key, action, payload, build) {
+  var my = ++S.seq, had = S.cache[key];
+  if (had) { build(had); markUpdating(true); } else loading();
+  api(action, payload).then(function (d) {
+    if (my !== S.seq) { S.cache[key] = d; saveCache(); return; }        // المستخدم انتقل لتبويب آخر
+    var same = had && JSON.stringify(had) === JSON.stringify(d);
+    S.cache[key] = d; saveCache();
+    markUpdating(false);
+    if (same) return;
+    if (had && editing()) return toast('وصلت تحديثات: احفظ تعديلاتك ثم افتح التبويب من جديد.');
+    build(d);
+  }).catch(function (e) { markUpdating(false); if (my !== S.seq) return; if (had) toast(e.message, 1); else errorCard(e); });
+}
+function markUpdating(on) { var t = $('.top'); if (t) t.classList.toggle('busy', !!on); }
+/** بعد أول شاشة: نجهّز التبويبين الآخرين في الخلفية فيفتحان فورا */
+function prefetch() {
+  if (S.prefetched || !S.token) return; S.prefetched = true;
+  setTimeout(function () {
+    ['students', 'settings'].forEach(function (k) { if (!S.cache[k]) api(k).then(function (d) { S.cache[k] = d; saveCache(); }).catch(function () {}); });
+  }, 300);
+}
+
+function render() {
+  clearInterval(S.live);
+  if (!S.token) return loginView();
+  if (S.tab === 'parents') return parentsView();
+  if (S.tab === 'settings') return settingsView();
+  todayView();
+}
+// إيقاظ خادم Google مبكرا (الصفحة على GitHub): أول طلب حقيقي يصبح أسرع
+if (WEB_API) { try { fetch(WEB_API, { method: 'POST', body: '{"action":"ping"}', credentials: 'omit' }).catch(function () {}); } catch (e) {} }
+render();
+</script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });</script>
+</body>
+</html>
